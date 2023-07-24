@@ -1,37 +1,36 @@
+import { keys } from '@vimeo/player';
 import throttle from 'lodash.throttle';
 
-//1.refs
 const formEl = document.querySelector('.feedback-form');
-const inputEl = document.querySelector('input[name="email"]');
-const messageEl = document.querySelector('textarea[name="message"]');
 
+let feedbackFormState = {};
+const STORAGE_KEY = 'feedback-form-state';
 
 formEl.addEventListener('input', throttle(onInput, 500));
 
-function onInput() {
-  const storageObject = { email: inputEl.value, message: messageEl.value };
-
-  localStorage.setItem('feedback-form-state', JSON.stringify(storageObject));
+function onInput(e) {
+  feedbackFormState[e.target.name] = e.target.value.trim();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(feedbackFormState));
 }
 
 formEl.addEventListener('submit', evt => {
   evt.preventDefault();
-  console.log(JSON.parse(localStorage.getItem('feedback-form-state')));
-  localStorage.clear();
+  console.log(feedbackFormState);
+  feedbackFormState = {};
+  localStorage.removeItem(STORAGE_KEY);
   evt.target.reset();
 });
 
-const load = key => {
+const onLoad = () => {
   try {
-    const serializedState = localStorage.getItem(key);
-    return serializedState === null ? undefined : JSON.parse(serializedState);
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) return;
+    feedbackFormState = JSON.parse(data);
+    Object.entries(feedbackFormState).forEach(([key, val]) => {
+      formEl.elements[key].value = val;
+    });
   } catch (error) {
-    console.error('Get state error: ', error.message);
+    console.log(error.message);
   }
 };
-
-const storageData = load('feedback-form-state');
-if (storageData) {
-  inputEl.value = storageData.email;
-  messageEl.value = storageData.message;
-}
+window.addEventListener('load', onLoad);
